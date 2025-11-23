@@ -1,0 +1,71 @@
+Go into project folder
+	cd "C:\Users\tamar\Civic-Issue-Reporting-System"
+To see subfolders of cwd (make sure empty)
+	Get-ChildItem
+Create frontend and backend folders
+	mkdir frontend
+	mkdir backend
+
+initialize .git file
+	git init
+Create a README.md file
+	echo "# Civic Issue Reporting System" > README.md
+Stage and comit
+	git add .
+	git commit -m "initial empty project structure"
+
+Build/Setup frontend folder
+	cd frontend
+  Create a Vite + React project:
+	npm create vite@latest
+		output must look like:
+				> npx
+				> create-vite
+
+				│
+				◇  Project name:
+				│  .
+				│
+				◇  Select a framework:
+				│  React
+				│
+				◇  Select a variant:
+				│  JavaScript
+				│
+				◇  Use rolldown-vite (Experimental)?:
+				│  No
+				│
+				◇  Install with npm and start now?
+				│  Yes
+				│
+				◇  Scaffolding project in C:\Users\tamar\Civic-Issue-Reporting-System\frontend...
+				│
+				◇  Installing dependencies with npm...
+
+				added 157 packages, and audited 158 packages in 15s
+
+				33 packages are looking for funding
+				run `npm fund` for details
+
+				found 0 vulnerabilities
+				│
+				◇  Starting dev server...
+
+				> frontend@0.0.0 dev
+				> vite
+
+
+				VITE v7.2.4  ready in 692 ms
+
+				➜  Local:   http://localhost:5173/
+				➜  Network: use --host to expose
+				➜  press h + enter to show help
+  After vite server created, ctrl+c and y to terminate batch job
+
+Install Tailwind
+	npm install -D tailwindcss@3.4 postcss autoprefixer
+Initialize Tailwind config
+	npx tailwindcss init -p
+
+Install lucid React
+	npm install lucide-react

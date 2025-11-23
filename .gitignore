@@ -1,0 +1,72 @@
+##############################
+# FRONTEND (React + Vite)
+##############################
+
+# Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Production build
+dist/
+build/
+
+# Vite
+.vite/
+
+##############################
+# BACKEND (Spring Boot + Maven)
+##############################
+
+# Maven
+target/
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+pom.xml.next
+release.properties
+
+# Logs
+*.log
+*.out
+
+# Spring
+*.jar
+*.war
+*.ear
+
+##############################
+# IDE / EDITOR SETTINGS
+##############################
+
+# VS Code
+.vscode/
+
+# Eclipse / STS
+.metadata/
+.settings/
+bin/
+.classpath
+.project
+
+# IntelliJ IDEA (not used now but safe)
+.idea/
+*.iml
+
+##############################
+# ENVIRONMENT / SECRETS
+##############################
+
+.env
+.env.*
+application.properties
+application.yml
+
+##############################
+# OS files
+##############################
+
+.DS_Store
+Thumbs.db

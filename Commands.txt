@@ -14,6 +14,7 @@ Stage and comit
 	git add .
 	git commit -m "initial empty project structure"
 
+---------------------------------------------------------------------------------------------------------
 Build/Setup frontend folder
 	cd frontend
   Create a Vite + React project:
@@ -69,3 +70,136 @@ Initialize Tailwind config
 
 Install lucid React
 	npm install lucide-react
+
+---------------------------------------------------------------------------------------------------------
+
+Build/Setup backend
+
+In STS, create a new Spring project
+	File → New → Spring Starter Project
+
+Fill in project details
+	| Field            | Value                                  |
+	| ---------------- | -------------------------------------- |
+	| **Name**         | `civic-backend`                        |
+	| **Type**         | Maven                                  |
+	| **Packaging**    | Jar                                    |
+	| **Java Version** | 17 (or whatever STS shows if it's 17+) |
+	| **Group**        | `com.civic`                            |
+	| **Artifact**     | `civic-backend`                        |
+	| **Description**  | Civic Issue Reporting Backend          |
+	| **Package**      | `com.civic.backend`                    |
+
+
+---------------------------------------------------------------------------------------------------------
+
+Create .gitignore
+
+Open VS Code at the root
+	cd C:\Users\tamar\Civic-Issue-Reporting-System
+	code .
+
+Paste this exact .gitignore content
+	##############################
+	# FRONTEND (React + Vite)
+	##############################
+
+	# Node
+	node_modules/
+	npm-debug.log*
+	yarn-debug.log*
+	yarn-error.log*
+	pnpm-debug.log*
+
+	# Production build
+	dist/
+	build/
+
+	# Vite
+	.vite/
+
+	##############################
+	# BACKEND (Spring Boot + Maven)
+	##############################
+
+	# Maven
+	target/
+	pom.xml.tag
+	pom.xml.releaseBackup
+	pom.xml.versionsBackup
+	pom.xml.next
+	release.properties
+
+	# Logs
+	*.log
+	*.out
+
+	# Spring
+	*.jar
+	*.war
+	*.ear
+
+	##############################
+	# IDE / EDITOR SETTINGS
+	##############################
+
+	# VS Code
+	.vscode/
+
+	# Eclipse / STS
+	.metadata/
+	.settings/
+	bin/
+	.classpath
+	.project
+
+	# IntelliJ IDEA (not used now but safe)
+	.idea/
+	*.iml
+
+	##############################
+	# ENVIRONMENT / SECRETS
+	##############################
+
+	.env
+	.env.*
+	application.properties
+	application.yml
+
+	##############################
+	# OS files
+	##############################
+
+	.DS_Store
+	Thumbs.db
+
+We are ignoring application.properties only temporarily because it will contain your MySQL username/password.
+
+Later:
+	keep local properties ignored
+	create a safe application-example.properties to upload to GitHub
+
+Add everything
+	git add .
+commit
+	git commit -m "Initial full project setup"
+Set main branch
+	git branch -M main
+Connect to GitHub remote
+	git remote add origin https://github.com/tamaracariappa/Civic-Issue-Reporting-System.git
+
+Push to GitHub
+	git push -u origin main
+
+
+From now on, for any changes
+	Pull latest changes (always do this FIRST)
+		git pull
+	Check what changed
+		git status
+	Stage your changed files
+		git add .
+	Commit your changes
+		git commit -m "Your message"
+	Push to GitHub
+		git push

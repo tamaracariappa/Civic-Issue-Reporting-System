@@ -1,0 +1,267 @@
+1. Project Setup and Dependencies
+    Goal: Establish the foundation of the SpringBoot application using MySQL.
+        Project: Generate a Spring Boot application using Java 17+ and Maven.
+        Database: Use MySQL as the database.
+        Core Dependencies (In pom.xml):
+            spring-boot-starter-web
+            spring-boot-starter-data-jpa (Hibernate)
+            mysql-connector-java driver
+            spring-boot-starter-security
+            jjwt-api / jjwt-impl / jjwt-jackson (for JWT)
+            spring-boot-starter-validation
+
+2. Configuration (application.properties)
+    Goal: Configure the MySQL connection details.
+    Driver & Dialect: Ensure the correct MySQL driver and dialect are configured.
+    Connection: Use standard JDBC URL format for MySQL connection.
+    Database Creation: Configure JPA to automatically create or update the schema (ddl-auto=update).
+
+3. Database Schema and JPA Entities
+    Goal: Translate the refined schema into Java classes with MySQL compatibility.
+    Entity Generation: Create the necessary JPA Entity classes (in the model package) corresponding exactly to the tables in the provided DBML Schema (v2), ensuring primary keys use @GeneratedValue(strategy = GenerationType.IDENTITY) for auto-increment.
+    Date/Time Types: Use Java LocalDateTime for database datetime columns.
+    Decimal Types: Use Java BigDecimal for decimal(10, 8) and decimal(11, 8) fields (latitude/longitude) and ensure the precision is mapped correctly using the @Column(precision=10, scale=8) annotation.
+    Repositories: Generate standard Spring Data JPA Repositories (in the repository package) for all entities.
+
+4. Security and Authentication Layer
+    Goal: Implement the JWT-based security required for access control.
+    Security Config (SecurityConfig.java): Configure Spring Security to be stateless (using SessionCreationPolicy.STATELESS).
+        Permit access to /api/v1/auth/** and /api/v1/issues/public without authentication.
+        Secure all other /api/v1/** endpoints.
+    JWT Implementation:
+        Generation: A utility service to create and validate JWTs. The JWT payload must contain the user_id and user_role.
+        Filter: A JWT filter to intercept requests and set the authenticated user in the security context.
+    Authentication Controller (AuthController.java)::
+        Endpoint: POST /api/v1/auth/login
+        User Roles: Enforce roles: CITIZEN, OFFICIAL, ADMIN.
+
+5. Core Business Logic and Services
+    Goal: Implement the complex routing, aggregation, and penalty logic (No change to logic, just implementation language).
+    A. Routing and Data Service (RoutingService.java)
+        mapCoordinatesToWard(latitude, longitude): Placeholder method to simulate finding a Ward ID.
+        getDefaultAssignment(wardId, categoryId): Retrieves the correct AuthorityRole ID and the active OfficerAssignment ID for that ward_id and role_id combination. Must handle fallback to zone-level assignment if needed.
+    B. Issue Service (IssueService.java)
+        createIssue(issueData, reporterId) (Core Logic):
+            Calls mapCoordinatesToWard and getDefaultAssignment.
+            Aggregation Logic (MySQL Query): Performs a geo-proximity check using MySQL's spatial functions or a simple bounding box calculation to find a parent_issue_id.
+            If a duplicate is found, set the new issue's parent_issue_id, increment the master issue's duplicate_count, and update its priority_level.
+            SLA Logic: Calculates resolution_deadline and saves an initial record to IssueSLA.
+            Saves records to Location, IssueReport, IssueSLA, and IssueLog.
+        updateIssueStatus(issueId, newStatus, officerId, notes):
+            Access Control: Check if officerId is currently assigned to the role handling issueId.
+            Updates IssueReport.status and creates a new record in IssueLog.
+
+6. API Controllers (IssueController.java)
+    Goal: Implement the REST API contracts (No change to endpoints or contracts).
+    Issue Submission: POST /api/v1/issues
+        Security: Requires CITIZEN role.
+        Matches the contract defined previously.
+    Public Tracking Board: GET /api/v1/issues/public
+        Security: Public access.
+        Returns a list of master issues, filtered and sorted by priority.
+    Issue Detail: GET /api/v1/issues/{id}
+        Security: Public access.
+        Retrieves full issue and IssueLog history.
+
+7. Initial Data Loading
+    Mock Data (data-mysql.sql): Provide SQL inserts to populate the organizational structure (Department, Ward, AuthorityRole, IssueCategory, and mock Users for official roles) so the routing logic can be tested immediately.
+
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Full Development Environment Setup 
+    1. Java & Backend Tools (Spring Boot Development)
+    | Tool         | Version                                            
+    | -------------| --------
+    | Java JDK     | 17.0.12
+    | Javac        | 17.0.12
+    | Apache Maven | 3.9.11
+    | Spring Boot  | 
+
+
+2. Frontend Tools (React + Vite + Tailwind)
+    | Tool         | Version                                            
+    | -------------| -------------
+    | Node.js      | 22.x (latest)
+    | npm          | 10.9.3
+    | Vite         | 8.2.0
+    | lucide-react | latest
+    | Tailwind CSS | (installed)
+    | PostCSS      | latest
+    | Autoprefixer | latest
+
+3. Database Tools
+    | Tool                       | Version          
+    | -------------------------- | ---------------
+    | **MySQL Community Server** | .0.43 for Win64
+
+4. Version Control Tools
+| Tool       | Version          
+| -----------| ---------------
+| Git        | 2.51.1.windows.1
+| .gitignore | custom
+
+5. OS & Environment
+|Component       | Version
+| ---------------| ---------------
+| Windows        | Windows 10 build 26100.7171
+| PowerShell     | Default Windows version
+| WSL            | Installed (after prompt)
+| Docker Desktop | Installed (new install)
+
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+API Contract: Issue Submission
+    Endpoint: POST /api/v1/issues
+    This endpoint is called by the frontend (Screen 2: Reporting Form) after successful Aadhar authentication.
+
+    1. Request Body (Input from Citizen)
+        The frontend captures these fields and sends them in the request. The backend will use the authenticated user_id implicitly.
+            Field Name      Type            Required        Notes       
+            category_id     int             TRUE            FK to Issue_Category table. Determines routing.
+            description     text            TRUE            Detailed description (typed or transcribed from voice).
+            photo_base64    varchar         TRUE            Base64 encoded image string (or mock URL if using a simulated upload flow).
+            latitude        decimal(10,8)   TRUE            Captured via mobile GPS. Used for Ward mapping and clustering.
+            longitude       decimal(11,8)   TRUE            Captured via mobile GPS. Used for Ward mapping and clustering.
+
+    2. Backend Processing (SpringBoot Logic)
+        The SpringBoot backend performs the following steps upon receiving the request:
+            1. Auth Check: Verifies JWT/Session and retrieves reporter_user_id from the token.
+            2. Location Mapping: Queries the GIS data (or Ward table based on geometry/proximity) to determine the ward_id.
+            3. Routing: Uses category_id to look up the default_role_id from Issue_Category.
+            4. Clustering/Aggregation: Performs a geo-proximity check against Issue_Report to find a parent_issue_id.
+            5. SLA Calculation: Uses Issue_Category.sla_hours to calculate the resolution_deadline.
+            6. Data Insertion: Saves records into:
+                -Location
+                -Issue_Report
+                -Issue_SLA (initial record)
+                -Issue_Log (initial 'OPEN' status record)
+
+    3. Response Body (Success: HTTP 201 Created)
+        The API returns the necessary data for the citizen to track the issue.
+            Field Name      Type        Notes
+            docket_id       int         The issue_id of the newly created report.
+            status          varchar     "OPEN"
+            assigned_role   varchar     The title of the assigned role (e.g., "HOD Engineering - South Zone").
+            deadline        datetime    The calculated resolution deadline.
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Project File Overview
+    Module : Backend (SpringBoot)
+    Purpose : Handles all business logic, data persistence, routing, and security.
+    Example Files : pom.xml, Application.java, IssueController.java, UserService.java, IssueReportEntity.java, WardRepository.java
+    Key Components/Logic : Authentication (JWT/Session), Routing Engine (Ward mapping), Aggregation Engine (Duplicate check), SLA/Penalty Logic.
+    
+    Module : Frontend (React)
+    Purpose : Handles the UI, user interaction, GPS/Photo capture, and API calls.
+    Example Files : package.json, App.jsx, AuthScreen.jsx, ReportingForm.jsx, TrackingBoard.jsx, tailwind.config.js
+    Key Components/Logic : All 5 Wireframe Screens, Responsive Design, State Management, API Consumption.
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+DBML Schema for Civic Issue Reporting
+
+# =================================================================
+# DBML Schema for Civic Issue Reporting (v2 - Refined)
+# =================================================================
+
+USERS & AUTHENTICATION
+    Table Users {
+        user_id         int          [pk, increment]
+        aadhar_hash     varchar(256) [not null] // Store SHA-256 hash
+        full_name       varchar(120) [not null]
+        mobile_number   varchar(15)  [not null, unique]
+        email           varchar(120) [unique]
+        user_role       varchar(50)  [not null] // citizen, officer, admin
+        created_at      datetime     [default: CURRENT_TIMESTAMP]
+    }
+
+ORGANIZATION STRUCTURE
+    Table Department {
+        dept_id     int          [pk, increment]
+        dept_name   varchar(120) [not null, unique]
+        description text
+    }
+
+    Table Ward {
+        ward_id     int          [pk, increment]
+        ward_name   varchar(120) [not null]
+        zone_name   varchar(120) [not null]
+    }
+
+    Table Authority_Role {
+        role_id           int          [pk, increment]
+        role_title        varchar(120) [not null] // e.g., "Health Inspector"
+        dept_id           int          [not null, ref: > Department.dept_id]
+        default_sla_hours int          // category-level fallback
+    }
+
+OFFICER POSTING & ASSIGNMENTS
+    Table Officer_Assignment {
+        assignment_id     int         [pk, increment]
+        officer_id        int         [not null, ref: > Users.user_id]
+        role_id           int         [not null, ref: > Authority_Role.role_id]
+        ward_id           int         [ref: > Ward.ward_id] // Some roles are zone-level (NULL)
+        assigned_from     datetime    [not null]
+        assigned_until    datetime
+    }
+
+LOCATION NORMALIZATION
+    Table Location {
+    location_id   int           [pk, increment]
+    latitude      decimal(10,8) [not null]
+    longitude     decimal(11,8) [not null]
+    address_text  text
+    ward_id       int           [ref: > Ward.ward_id]
+    }
+
+ISSUE CATEGORY & ROUTING
+    Table Issue_Category {
+    category_id     int          [pk, increment]
+    category_name   varchar(120) [not null]
+    default_role_id int          [not null, ref: > Authority_Role.role_id]
+    sla_hours       int          [not null]
+    }
+
+ISSUE REPORT
+    Table Issue_Report {
+    issue_id          int          [pk, increment]
+    reporter_user_id  int          [not null, ref: > Users.user_id]
+    category_id       int          [not null, ref: > Issue_Category.category_id]
+    description       text
+    photo_url         varchar(255)
+    location_id       int          [not null, ref: > Location.location_id]
+    status            varchar(30)  [not null] // Open, In Progress, Resolved, Rejected
+    created_at        datetime     [default: CURRENT_TIMESTAMP]
+// --- Denormalized fields for Duplicates & Priority (Replaces Issue_Duplicate_Map) ---
+    parent_issue_id   int          [ref: > Issue_Report.issue_id, note: 'If not null, this is a duplicate.']
+    duplicate_count   int          [default: 0, note: 'Denormalized count, for master issues only.']
+    priority_level    varchar(30)  [default: 'Medium', note: 'Low, Medium, High, Critical/RED ZONE']
+}
+
+ISSUE ASSIGNMENT HISTORY
+    Table Issue_Assignment {
+    assignment_id   int         [pk, increment]
+    issue_id        int         [not null, ref: > Issue_Report.issue_id]
+    assigned_to     int         [not null, ref: > Officer_Assignment.assignment_id]
+    assigned_by     int         [ref: > Users.user_id]
+    assigned_at     datetime    [default: CURRENT_TIMESTAMP]
+    rationale       text        // Why assigned / re-routed
+    is_escalated    boolean     [default: false]
+    }
+
+SLA MONITORING
+    Table Issue_SLA {
+    sla_id          int           [pk, increment]
+    issue_id        int           [not null, ref: > Issue_Report.issue_id]
+    deadline        datetime      [not null]
+    breached        boolean       [default: false]
+    breach_time     datetime
+    penalty_amount  decimal(10,2)
+    }
+
+ISSUE LOGS (AUDIT TRAIL)
+    Table Issue_Log {
+        log_id              int         [pk, increment]
+        issue_id            int         [not null, ref: > Issue_Report.issue_id]
+        updated_by_user_id  int         [not null, ref: > Users.user_id]
+        timestamp           datetime    [default: CURRENT_TIMESTAMP]
+        old_status          varchar(30)
+        new_status          varchar(30) [not null]
+        notes               text
+    }

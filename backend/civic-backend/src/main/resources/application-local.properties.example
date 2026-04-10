@@ -1,0 +1,6 @@
+# Copy this file to application-local.properties and set your real local secrets.
+# This file is safe to commit; do not put real credentials here.
+
+spring.datasource.username=your_local_db_user
+spring.datasource.password=your_local_db_password
+jwt.secret=your_local_jwt_secret_key

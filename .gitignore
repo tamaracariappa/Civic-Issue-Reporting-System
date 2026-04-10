@@ -70,3 +70,5 @@ application.yml
 
 .DS_Store
 Thumbs.db
+
+backend/civic-backend/src/main/resources/application-local.properties

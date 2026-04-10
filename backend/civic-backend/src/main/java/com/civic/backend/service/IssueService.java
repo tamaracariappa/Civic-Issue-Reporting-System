@@ -18,6 +18,7 @@ import com.civic.backend.repository.WardRepository;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -156,6 +157,54 @@ public class IssueService {
         issueLogRepository.save(issueLog);
     }
 
+    public List<PublicIssueView> getPublicIssues() {
+        List<IssueReport> issues = issueReportRepository.findPublicMasterIssuesOrderByPriority();
+        List<PublicIssueView> result = new ArrayList<>();
+        for (IssueReport issue : issues) {
+            result.add(new PublicIssueView(
+                    issue.getIssueId(),
+                    issue.getStatus(),
+                    issue.getPriorityLevel(),
+                    issue.getDuplicateCount(),
+                    issue.getCreatedAt()
+            ));
+        }
+        return result;
+    }
+
+    public IssueDetailView getIssueDetails(Integer issueId) {
+        IssueReport issue = issueReportRepository.findDetailsById(issueId)
+                .orElseThrow(() -> new IllegalArgumentException("Issue not found: " + issueId));
+        List<IssueLog> logs = issueLogRepository.findByIssueIssueIdOrderByTimestampAsc(issueId);
+        List<IssueLogView> logViews = new ArrayList<>();
+        for (IssueLog log : logs) {
+            logViews.add(new IssueLogView(
+                    log.getLogId(),
+                    log.getTimestamp(),
+                    log.getOldStatus(),
+                    log.getNewStatus(),
+                    log.getNotes(),
+                    log.getUpdatedByUser().getUserId()
+            ));
+        }
+
+        return new IssueDetailView(
+                issue.getIssueId(),
+                issue.getStatus(),
+                issue.getPriorityLevel(),
+                issue.getDuplicateCount(),
+                issue.getDescription(),
+                issue.getPhotoUrl(),
+                issue.getCreatedAt(),
+                issue.getCategory().getCategoryId(),
+                issue.getReporterUser().getUserId(),
+                issue.getParentIssue() == null ? null : issue.getParentIssue().getIssueId(),
+                issue.getLocation().getLatitude(),
+                issue.getLocation().getLongitude(),
+                logViews
+        );
+    }
+
     private IssueReport findDuplicateMaster(BigDecimal latitude, BigDecimal longitude) {
         BigDecimal normalizedLat = latitude.setScale(8, RoundingMode.HALF_UP);
         BigDecimal normalizedLng = longitude.setScale(8, RoundingMode.HALF_UP);
@@ -197,6 +246,42 @@ public class IssueService {
             String status,
             String assignedRole,
             LocalDateTime deadline
+    ) {
+    }
+
+    public record PublicIssueView(
+            Integer issueId,
+            String status,
+            String priorityLevel,
+            Integer duplicateCount,
+            LocalDateTime createdAt
+    ) {
+    }
+
+    public record IssueLogView(
+            Integer logId,
+            LocalDateTime timestamp,
+            String oldStatus,
+            String newStatus,
+            String notes,
+            Integer updatedByUserId
+    ) {
+    }
+
+    public record IssueDetailView(
+            Integer issueId,
+            String status,
+            String priorityLevel,
+            Integer duplicateCount,
+            String description,
+            String photoUrl,
+            LocalDateTime createdAt,
+            Integer categoryId,
+            Integer reporterUserId,
+            Integer parentIssueId,
+            BigDecimal latitude,
+            BigDecimal longitude,
+            List<IssueLogView> logs
     ) {
     }
 }

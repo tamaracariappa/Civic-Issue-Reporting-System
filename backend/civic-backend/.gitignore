@@ -31,3 +31,5 @@ build/
 
 ### VS Code ###
 .vscode/
+
+backend/civic-backend/src/main/resources/application-local.properties
